@@ -1,0 +1,351 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' 'unsafe-inline'; style-src 'self' 'unsafe-inline'; img-src 'self' data:; connect-src 'self';">
+  <meta http-equiv="X-Frame-Options" content="DENY">
+  <meta http-equiv="X-Content-Type-Options" content="nosniff">
+  <meta http-equiv="Referrer-Policy" content="strict-origin-when-cross-origin">
+  <title>微信扫码登录</title>
+  <style>
+    * {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+    }
+
+    body {
+      font-family: 'Segoe UI', Tahoma, Geneva, Verdana, -apple-system, BlinkMacSystemFont, sans-serif;
+      background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+      min-height: 100vh;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      padding: 20px;
+      position: relative;
+    }
+
+    body::before {
+      content: '';
+      position: absolute;
+      top: 0;
+      left: 0;
+      right: 0;
+      bottom: 0;
+      background: url('data:image/svg+xml,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100"><defs><pattern id="grain" width="100" height="100" patternUnits="userSpaceOnUse"><circle cx="25" cy="25" r="1" fill="white" opacity="0.03"/><circle cx="75" cy="75" r="1" fill="white" opacity="0.03"/></pattern></defs><rect width="100" height="100" fill="url(%23grain)"/></svg>');
+      pointer-events: none;
+    }
+
+    .container {
+      background: rgba(255, 255, 255, 0.95);
+      backdrop-filter: blur(20px);
+      padding: 40px;
+      border-radius: 20px;
+      box-shadow:
+        0 20px 60px rgba(0, 0, 0, 0.1),
+        0 0 0 1px rgba(255, 255, 255, 0.1);
+      max-width: 420px;
+      width: 100%;
+      position: relative;
+      z-index: 1;
+      animation: slideUp 0.6s ease-out;
+    }
+
+    @keyframes slideUp {
+      from {
+        opacity: 0;
+        transform: translateY(30px);
+      }
+      to {
+        opacity: 1;
+        transform: translateY(0);
+      }
+    }
+
+    .logo-section {
+      text-align: center;
+      margin-bottom: 30px;
+    }
+
+    .logo {
+      width: 60px;
+      height: 60px;
+      background: linear-gradient(135deg, #667eea, #764ba2);
+      border-radius: 16px;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 28px;
+      margin-bottom: 16px;
+      box-shadow: 0 8px 20px rgba(102, 126, 234, 0.3);
+    }
+
+    h2 {
+      color: #1a1a2e;
+      font-size: 24px;
+      font-weight: 600;
+      margin-bottom: 8px;
+      background: linear-gradient(135deg, #667eea, #764ba2);
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+      background-clip: text;
+    }
+
+    .subtitle {
+      color: #6b7280;
+      font-size: 14px;
+      margin-bottom: 25px;
+      line-height: 1.5;
+    }
+
+    .qr-code {
+      background: white;
+      border-radius: 16px;
+      padding: 20px;
+      margin: 25px 0;
+      box-shadow:
+        0 8px 32px rgba(0, 0, 0, 0.08),
+        inset 0 1px 0 rgba(255, 255, 255, 0.1);
+      border: 1px solid rgba(102, 126, 234, 0.1);
+      position: relative;
+      overflow: hidden;
+    }
+
+    .qr-code::before {
+      content: '';
+      position: absolute;
+      top: -2px;
+      left: -2px;
+      right: -2px;
+      bottom: -2px;
+      background: linear-gradient(135deg, #667eea, #764ba2);
+      border-radius: 18px;
+      z-index: -1;
+      opacity: 0;
+      transition: opacity 0.3s ease;
+    }
+
+    .qr-code:hover::before {
+      opacity: 0.1;
+    }
+
+    .qr-code img {
+      max-width: 200px;
+      height: auto;
+      display: block;
+      margin: 0 auto;
+      border-radius: 8px;
+    }
+
+    .status {
+      margin: 20px 0;
+      padding: 16px 20px;
+      border-radius: 12px;
+      font-weight: 500;
+      font-size: 14px;
+      transition: all 0.3s ease;
+      position: relative;
+      overflow: hidden;
+    }
+
+    .status::before {
+      content: '';
+      position: absolute;
+      top: 0;
+      left: -100%;
+      width: 100%;
+      height: 100%;
+      background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.2), transparent);
+      animation: shimmer 2s infinite;
+    }
+
+    @keyframes shimmer {
+      0% { left: -100%; }
+      100% { left: 100%; }
+    }
+
+    .waiting {
+      background: linear-gradient(135deg, #fef3c7, #fde68a);
+      color: #92400e;
+      border: 1px solid rgba(245, 158, 11, 0.2);
+      box-shadow: 0 4px 12px rgba(245, 158, 11, 0.1);
+    }
+
+    .success {
+      background: linear-gradient(135deg, #d1fae5, #a7f3d0);
+      color: #065f46;
+      border: 1px solid rgba(34, 197, 94, 0.2);
+      box-shadow: 0 4px 12px rgba(34, 197, 94, 0.1);
+      animation: pulse 0.5s ease;
+    }
+
+    @keyframes pulse {
+      0%, 100% { transform: scale(1); }
+      50% { transform: scale(1.02); }
+    }
+
+    .error {
+      background: linear-gradient(135deg, #fee2e2, #fecaca);
+      color: #991b1b;
+      border: 1px solid rgba(239, 68, 68, 0.2);
+      box-shadow: 0 4px 12px rgba(239, 68, 68, 0.1);
+    }
+
+    .instructions {
+      background: linear-gradient(135deg, #f8fafc, #f1f5f9);
+      border-radius: 12px;
+      padding: 20px;
+      margin: 20px 0;
+      border: 1px solid rgba(148, 163, 184, 0.1);
+    }
+
+    .instructions h3 {
+      color: #374151;
+      font-size: 15px;
+      font-weight: 600;
+      margin-bottom: 12px;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+
+    .instructions ol {
+      list-style: none;
+      counter-reset: step-counter;
+    }
+
+    .instructions li {
+      counter-increment: step-counter;
+      position: relative;
+      padding-left: 32px;
+      margin-bottom: 10px;
+      color: #6b7280;
+      font-size: 14px;
+      line-height: 1.5;
+    }
+
+    .instructions li::before {
+      content: counter(step-counter);
+      position: absolute;
+      left: 0;
+      top: 2px;
+      width: 22px;
+      height: 22px;
+      background: linear-gradient(135deg, #667eea, #764ba2);
+      color: white;
+      border-radius: 50%;
+      font-size: 12px;
+      font-weight: 600;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+
+    .loading-spinner {
+      display: inline-block;
+      width: 16px;
+      height: 16px;
+      border: 2px solid rgba(110, 145, 210, 0.3);
+      border-top: 2px solid #6e91d2;
+      border-radius: 50%;
+      animation: spin 1s linear infinite;
+      margin-right: 8px;
+      vertical-align: middle;
+    }
+
+    @keyframes spin {
+      0% { transform: rotate(0deg); }
+      100% { transform: rotate(360deg); }
+    }
+
+    @media (max-width: 480px) {
+      .container {
+        padding: 30px 20px;
+        margin: 10px;
+      }
+
+      h2 {
+        font-size: 22px;
+      }
+
+      .qr-code img {
+        max-width: 180px;
+      }
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <div class="logo-section">
+      <div class="logo">🔐</div>
+      <h2>微信扫码登录</h2>
+      <p class="subtitle">请使用微信扫描下方二维码进行登录</p>
+    </div>
+
+    <div class="qr-code">
+      <img src="{{QR_CODE_DATA_URL}}" alt="微信登录二维码" />
+    </div>
+
+    <div id="status" class="status waiting">
+      <span class="loading-spinner"></span>
+      等待扫描二维码...
+    </div>
+
+    <div class="instructions">
+      <h3>📱 操作步骤</h3>
+      <ol>
+        <li>打开微信扫一扫功能</li>
+        <li>扫描上方二维码</li>
+        <li>在手机上确认登录</li>
+      </ol>
+    </div>
+  </div>
+
+  <script>
+    const pollingId = '{{POLLING_ID}}';
+    const statusElement = document.getElementById('status');
+
+    async function pollStatus() {
+      try {
+        const response = await fetch('/login-status?pollingId=' + pollingId);
+        const result = await response.json();
+
+        if (result.success) {
+          switch (result.status) {
+            case 'scanned':
+              statusElement.className = 'status waiting';
+              statusElement.innerHTML = '<span class="loading-spinner"></span>📱 二维码已扫描，请在手机确认登录...';
+              break;
+            case 'confirmed':
+            case 'success':
+              statusElement.className = 'status success';
+              statusElement.innerHTML = '✅ 登录成功！正在跳转...';
+              setTimeout(() => {
+                window.location.href = '/login-success';
+              }, 2000);
+              return;
+            case 'expired':
+              statusElement.className = 'status error';
+              statusElement.innerHTML = '❌ 二维码已过期，请刷新页面重试';
+              return;
+            case 'error':
+              statusElement.className = 'status error';
+              statusElement.innerHTML = '❌ 登录失败，请重试';
+              return;
+          }
+        } else {
+          statusElement.className = 'status error';
+          statusElement.innerHTML = '❌ ' + (result.error || '查询状态失败');
+        }
+      } catch (error) {
+        console.error('Polling error:', error);
+      }
+
+      setTimeout(pollStatus, 2000);
+    }
+
+    pollStatus();
+  </script>
+</body>
+</html>

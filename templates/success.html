@@ -1,0 +1,347 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' 'unsafe-inline'; style-src 'self' 'unsafe-inline';">
+  <meta http-equiv="X-Frame-Options" content="DENY">
+  <meta http-equiv="X-Content-Type-Options" content="nosniff">
+  <meta http-equiv="Referrer-Policy" content="strict-origin-when-cross-origin">
+  <title>登录成功</title>
+  <style>
+    * {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+    }
+
+    body {
+      font-family: 'Segoe UI', Tahoma, Geneva, Verdana, -apple-system, BlinkMacSystemFont, sans-serif;
+      background: linear-gradient(135deg, #48bb78 0%, #38a169 100%);
+      min-height: 100vh;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      padding: 20px;
+      position: relative;
+      overflow: hidden;
+    }
+
+    body::before {
+      content: '';
+      position: absolute;
+      top: 0;
+      left: 0;
+      right: 0;
+      bottom: 0;
+      background: url('data:image/svg+xml,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100"><defs><pattern id="grain" width="100" height="100" patternUnits="userSpaceOnUse"><circle cx="25" cy="25" r="1" fill="white" opacity="0.03"/><circle cx="75" cy="75" r="1" fill="white" opacity="0.03"/><circle cx="50" cy="10" r="0.5" fill="white" opacity="0.02"/><circle cx="10" cy="50" r="0.5" fill="white" opacity="0.02"/></pattern></defs><rect width="100" height="100" fill="url(%23grain)"/></svg>');
+      pointer-events: none;
+    }
+
+    .floating-shapes {
+      position: absolute;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      overflow: hidden;
+      z-index: 0;
+    }
+
+    .shape {
+      position: absolute;
+      background: rgba(255, 255, 255, 0.1);
+      border-radius: 50%;
+      animation: float 20s infinite ease-in-out;
+    }
+
+    .shape:nth-child(1) {
+      width: 80px;
+      height: 80px;
+      left: 10%;
+      animation-delay: 0s;
+      animation-duration: 15s;
+    }
+
+    .shape:nth-child(2) {
+      width: 120px;
+      height: 120px;
+      right: 15%;
+      animation-delay: 5s;
+      animation-duration: 25s;
+    }
+
+    .shape:nth-child(3) {
+      width: 60px;
+      height: 60px;
+      left: 60%;
+      animation-delay: 10s;
+      animation-duration: 20s;
+    }
+
+    @keyframes float {
+      0%, 100% {
+        transform: translateY(0) rotate(0deg);
+        opacity: 0.1;
+      }
+      50% {
+        transform: translateY(-20px) rotate(180deg);
+        opacity: 0.3;
+      }
+    }
+
+    .container {
+      background: rgba(255, 255, 255, 0.95);
+      backdrop-filter: blur(20px);
+      padding: 40px;
+      border-radius: 20px;
+      box-shadow:
+        0 20px 60px rgba(0, 0, 0, 0.1),
+        0 0 0 1px rgba(255, 255, 255, 0.1);
+      max-width: 420px;
+      width: 100%;
+      position: relative;
+      z-index: 1;
+      animation: slideUp 0.6s ease-out;
+      text-align: center;
+    }
+
+    @keyframes slideUp {
+      from {
+        opacity: 0;
+        transform: translateY(30px);
+      }
+      to {
+        opacity: 1;
+        transform: translateY(0);
+      }
+    }
+
+    .success-icon {
+      width: 100px;
+      height: 100px;
+      background: linear-gradient(135deg, #48bb78, #38a169);
+      border-radius: 50%;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 50px;
+      margin-bottom: 24px;
+      box-shadow: 0 15px 35px rgba(72, 187, 120, 0.3);
+      animation: successPulse 1s ease-out;
+    }
+
+    @keyframes successPulse {
+      0% {
+        transform: scale(0);
+        opacity: 0;
+      }
+      50% {
+        transform: scale(1.1);
+      }
+      100% {
+        transform: scale(1);
+        opacity: 1;
+      }
+    }
+
+    h2 {
+      color: #1a1a2e;
+      font-size: 28px;
+      font-weight: 600;
+      margin-bottom: 16px;
+      background: linear-gradient(135deg, #48bb78, #38a169);
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+      background-clip: text;
+    }
+
+    .success {
+      background: linear-gradient(135deg, #d1fae5, #a7f3d0);
+      color: #065f46;
+      padding: 24px;
+      border-radius: 12px;
+      border: 1px solid rgba(34, 197, 94, 0.2);
+      margin: 24px 0;
+      font-size: 16px;
+      line-height: 1.6;
+      box-shadow: 0 4px 12px rgba(34, 197, 94, 0.1);
+      position: relative;
+      overflow: hidden;
+    }
+
+    .success::before {
+      content: '';
+      position: absolute;
+      top: 0;
+      left: -100%;
+      width: 100%;
+      height: 100%;
+      background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.3), transparent);
+      animation: shimmer 2s infinite;
+    }
+
+    @keyframes shimmer {
+      0% { left: -100%; }
+      100% { left: 100%; }
+    }
+
+    .success-icon-small {
+      display: inline-block;
+      width: 20px;
+      height: 20px;
+      background: linear-gradient(135deg, #48bb78, #38a169);
+      border-radius: 50%;
+      text-align: center;
+      line-height: 20px;
+      color: white;
+      font-size: 12px;
+      margin-right: 8px;
+      vertical-align: middle;
+    }
+
+    .features {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 16px;
+      margin: 24px 0;
+    }
+
+    .feature {
+      background: linear-gradient(135deg, #f8fafc, #f1f5f9);
+      padding: 16px;
+      border-radius: 10px;
+      border: 1px solid rgba(148, 163, 184, 0.1);
+      transition: transform 0.3s ease;
+    }
+
+    .feature:hover {
+      transform: translateY(-2px);
+    }
+
+    .feature-icon {
+      font-size: 24px;
+      margin-bottom: 8px;
+      display: block;
+    }
+
+    .feature-title {
+      font-size: 12px;
+      font-weight: 600;
+      color: #374151;
+      margin-bottom: 4px;
+    }
+
+    .feature-desc {
+      font-size: 11px;
+      color: #6b7280;
+      line-height: 1.4;
+    }
+
+    .next-steps {
+      background: linear-gradient(135deg, #f0f9ff, #e0f2fe);
+      border-radius: 12px;
+      padding: 20px;
+      margin: 24px 0;
+      border: 1px solid rgba(59, 130, 246, 0.1);
+    }
+
+    .next-steps h3 {
+      color: #1e40af;
+      font-size: 14px;
+      font-weight: 600;
+      margin-bottom: 12px;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+
+    .next-steps p {
+      color: #64748b;
+      font-size: 13px;
+      line-height: 1.5;
+    }
+
+    .close-info {
+      color: #6b7280;
+      font-size: 14px;
+      line-height: 1.6;
+      margin-top: 24px;
+      padding: 16px;
+      background: rgba(243, 244, 246, 0.5);
+      border-radius: 8px;
+    }
+
+    @media (max-width: 480px) {
+      .container {
+        padding: 30px 20px;
+        margin: 10px;
+      }
+
+      h2 {
+        font-size: 24px;
+      }
+
+      .success-icon {
+        width: 80px;
+        height: 80px;
+        font-size: 40px;
+      }
+
+      .features {
+        grid-template-columns: 1fr;
+        gap: 12px;
+      }
+    }
+  </style>
+</head>
+<body>
+  <div class="floating-shapes">
+    <div class="shape"></div>
+    <div class="shape"></div>
+    <div class="shape"></div>
+  </div>
+
+  <div class="container">
+    <div class="success-icon">✅</div>
+    <h2>登录成功</h2>
+
+    <div class="success">
+      <span class="success-icon-small">✓</span>
+      微信登录已成功完成！系统将自动进行今日签到。
+    </div>
+
+    <div class="features">
+      <div class="feature">
+        <span class="feature-icon">🤖</span>
+        <div class="feature-title">自动签到</div>
+        <div class="feature-desc">每日自动完成签到任务</div>
+      </div>
+      <div class="feature">
+        <span class="feature-icon">📱</span>
+        <div class="feature-title">微信认证</div>
+        <div class="feature-desc">安全便捷的身份验证</div>
+      </div>
+      <div class="feature">
+        <span class="feature-icon">🔔</span>
+        <div class="feature-title">状态通知</div>
+        <div class="feature-desc">实时推送签到结果</div>
+      </div>
+      <div class="feature">
+        <span class="feature-icon">🔒</span>
+        <div class="feature-title">隐私保护</div>
+        <div class="feature-desc">数据安全有保障</div>
+      </div>
+    </div>
+
+    <div class="next-steps">
+      <h3>🎯 接下来会发生什么？</h3>
+      <p>系统已记录您的登录状态，将在指定时间自动执行签到操作。签到完成后，您会收到通知邮件。</p>
+    </div>
+
+    <div class="close-info">
+      您现在可以安全关闭此页面。系统会在后台自动处理您的签到任务。
+    </div>
+  </div>
+</body>
+</html>

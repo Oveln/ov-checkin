@@ -1,0 +1,61 @@
+{
+  "name": "ov-checkin",
+  "version": "1.0.0",
+  "description": "Cloudflare Workers for school checkin system with WeChat authentication",
+  "main": "checkin-scheduler.ts",
+  "scripts": {
+    "build": "bun run build-templates && bun run type-check",
+    "build-templates": "node scripts/build-templates.js",
+    "dev": "bun run build-templates && wrangler dev",
+    "deploy": "bun run build && wrangler deploy",
+    "deploy:staging": "bun run build && wrangler deploy --env staging",
+    "deploy:production": "bun run build && wrangler deploy --env production",
+    "tail": "wrangler tail",
+    "test": "vitest",
+    "test:coverage": "vitest --coverage",
+    "lint": "eslint . --ext .ts,.tsx",
+    "lint:fix": "eslint . --ext .ts,.tsx --fix",
+    "type-check": "tsc --noEmit",
+    "format": "prettier --write .",
+    "format:check": "prettier --check .",
+    "clean": "rm -rf dist node_modules"
+  },
+  "keywords": [
+    "cloudflare",
+    "workers",
+    "wechat",
+    "checkin",
+    "typescript",
+    "serverless"
+  ],
+  "author": "Your Name <your.email@example.com>",
+  "license": "MIT",
+  "dependencies": {
+    "@cloudflare/kv-asset-handler": "~0.3.1",
+    "resend": "^6.4.2"
+  },
+  "devDependencies": {
+    "@cloudflare/workers-types": "^4.20240512.0",
+    "@types/node": "^20.12.12",
+    "@typescript-eslint/eslint-plugin": "^7.9.0",
+    "@typescript-eslint/parser": "^7.9.0",
+    "eslint": "^8.57.0",
+    "eslint-config-prettier": "^9.1.0",
+    "eslint-plugin-prettier": "^5.1.3",
+    "prettier": "^3.2.5",
+    "typescript": "^5.4.5",
+    "vitest": "^1.6.0",
+    "wrangler": "^4.46.0"
+  },
+  "engines": {
+    "node": ">=18.0.0"
+  },
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/your-username/school-checkin.git"
+  },
+  "bugs": {
+    "url": "https://github.com/your-username/school-checkin/issues"
+  },
+  "homepage": "https://github.com/your-username/school-checkin#readme"
+}

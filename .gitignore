@@ -1,0 +1,72 @@
+# Dependencies
+node_modules/
+bun.lockb
+package-lock.json
+
+# Cloudflare
+.wrangler/
+dist/
+.kv/
+
+# Environment files
+.env
+.env.local
+.env.production
+.env.staging
+.dev.vars
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Logs
+logs/
+*.log
+
+# Runtime data
+pids/
+*.pid
+*.seed
+*.pid.lock
+
+# Coverage directory used by tools like istanbul
+coverage/
+*.lcov
+
+# nyc test coverage
+.nyc_output
+
+# Temporary folders
+tmp/
+temp/
+
+# Optional npm cache directory
+.npm
+
+# Optional eslint cache
+.eslintcache
+
+# Microbundle cache
+.rpt2_cache/
+.rts2_cache_cjs/
+.rts2_cache_es/
+.rts2_cache_umd/
+
+# Optional REPL history
+.node_repl_history
+
+# Build output
+*.tsbuildinfo
+
+# Template handler (auto-generated)
+lib/template-handler.ts
+
+# Developer notes
+*.md.bak
+*.orig
