@@ -313,25 +313,33 @@
 
         if (result.success) {
           switch (result.status) {
-            case 'scanned':
+            case 408:
               statusElement.className = 'status waiting';
-              statusElement.innerHTML = '<span class="loading-spinner"></span>📱 二维码已扫描，请在手机确认登录...';
+              statusElement.innerHTML = '<span class="loading-spinner"></span>⏳ 等待扫描二维码...';
               break;
-            case 'confirmed':
-            case 'success':
+            case 404:
+              statusElement.className = 'status waiting';
+              statusElement.innerHTML = '<span class="loading-spinner"></span>📱 已扫描，等待确认登录...';
+              break;
+            case 405:
               statusElement.className = 'status success';
               statusElement.innerHTML = '✅ 登录成功！正在跳转...';
               setTimeout(() => {
                 window.location.href = '/login-success';
               }, 2000);
               return;
-            case 'expired':
+            case 403:
               statusElement.className = 'status error';
-              statusElement.innerHTML = '❌ 二维码已过期，请刷新页面重试';
+              statusElement.innerHTML = '❌ 用户取消扫描，请重新扫描';
               return;
-            case 'error':
+            case 402:
+            case 500:
               statusElement.className = 'status error';
-              statusElement.innerHTML = '❌ 登录失败，请重试';
+              statusElement.innerHTML = '❌ 二维码已失效，请刷新页面重试';
+              return;
+            default:
+              statusElement.className = 'status error';
+              statusElement.innerHTML = '❌ 未知状态，请刷新页面重试';
               return;
           }
         } else {

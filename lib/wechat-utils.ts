@@ -218,53 +218,66 @@ export class WeChatUtils {
 
       console.log(`[WeChatUtils] Parsed response: errcode=${errcode}, wxCode=${wxCode ? '***' : 'null'}`);
 
-      // Handle successful code retrieval
-      if (errcode === 405 && wxCode) {
-        console.log(`[WeChatUtils] 扫码成功，wx_code: ${wxCode.substring(0, 8)}...`);
-        return {
-          success: true,
-          status: 405, // Confirmed
-          wxCode,
-          message: '扫码成功'
-        };
+      // Handle different status codes based on official implementation
+      switch (errcode) {
+        case 405:
+          if (!wxCode) {
+            return {
+              success: false,
+              status: 405,
+              message: '扫码成功但未获取到code'
+            };
+          }
+          console.log(`[WeChatUtils] 扫码成功，wx_code: ${wxCode.substring(0, 8)}...`);
+          return {
+            success: true,
+            status: 405,
+            wxCode,
+            message: '扫码成功'
+          };
+
+        case 404:
+          // 已扫描，等待确认
+          return {
+            success: true,
+            status: 404,
+            message: '已扫描，等待确认'
+          };
+
+        case 403:
+          // 用户取消扫描
+          return {
+            success: true,
+            status: 403,
+            message: '用户取消扫描，请重新扫描'
+          };
+
+        case 408:
+          // 初始状态，无操作
+          return {
+            success: true,
+            status: 408,
+            message: '等待扫描二维码'
+          };
+
+        case 402:
+        case 500:
+          // 需要重新开始
+          return {
+            success: false,
+            status: errcode,
+            message: '二维码已失效，请重新获取'
+          };
+
+        default:
+          // 未知状态码
+          const status = errcode || response.status;
+          return {
+            success: false,
+            status,
+            message: `未知状态码: ${status}`
+          };
       }
-
-      // Handle expired QR code
-      if (errcode === 403) {
-        return {
-          success: true,
-          status: 403,
-          message: '二维码已过期，请重试'
-        };
-      }
-
-      // Handle waiting for scan
-      if (errcode === 404) {
-        return {
-          success: true,
-          status: 404,
-          message: '等待扫描二维码'
-        };
-      }
-
-      // Handle other status codes
-      const status = errcode || response.status;
-
-      // Handle 408 (scanned but not confirmed)
-      if (status === 408) {
-        return {
-          success: true,
-          status: 408,
-          message: '二维码已扫描，等待确认'
-        };
-      }
-
-      // Handle unknown status codes
-      return {
-        success: false,
-        status,
-        message: `未知状态码: ${status}`
-      };
 
     } catch (error) {
       console.error('[WeChatUtils] Error polling WeChat login:', error);
