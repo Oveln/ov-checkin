@@ -67,6 +67,9 @@ temp/
 # Template handler (auto-generated)
 lib/template-handler.ts
 
+# Wrangler template
+wrangler.toml
+
 # Developer notes
 *.md.bak
 *.orig

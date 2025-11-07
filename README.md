@@ -115,46 +115,59 @@
 #### 第1步：配置 wrangler.toml
 
 ```bash
-# 创建 KV Namespace
-bunx wrangler kv:namespace create "TOKEN_KV"
-bunx wrangler kv:namespace create "TOKEN_KV" --preview # （可选）
+# 创建 KV Namespace（新语法）
+bunx wrangler kv namespace create "TOKEN_KV"
+bunx wrangler kv namespace create "TOKEN_KV" --preview # （可选，用于预览环境）
 
 # 复制返回的 ID，更新 wrangler.toml
 ```
 
-```toml
-name = "school-checkin"
-main = "checkin-scheduler.ts"
-compatibility_date = "2024-01-01"
-compatibility_flags = ["nodejs_compat"]
+**复制模板文件：**
+```bash
+cp wrangler.toml.template wrangler.toml
+```
 
+编辑 `wrangler.toml`，更新 KV ID：
+```toml
 [[kv_namespaces]]
 binding = "TOKEN_KV"
 id = "你的生产环境KV_ID"          # 替换为上面获取的ID
 preview_id = "你的预览环境KV_ID"   # 替换为上面获取的ID （可选）
-
-# 定时任务 (UTC时间，对应北京时间 19:05)
-[triggers]
-crons = ["5 11 * * *"]  # UTC 11:05 = 北京 19:05
 ```
 
-#### 第2步：配置环境变量
+#### 第2步：设置环境变量
 
-在 Cloudflare Dashboard → Workers → school-checkin → Settings → Environment Variables 中添加：
+**方式1：在 wrangler.toml 中设置所有变量（适合本地开发）**
 
-```bash
-# 用户配置
+```toml
+[vars]
+# 非敏感变量
 USER_NAME = "你的名字"
-THREAD_ID = "你的签到线程ID"
+THREAD_ID = "123456"
+AUTH_WORKER_URL = "https://your-worker.your-subdomain.workers.dev"
 
-# 邮件配置
-RESEND_FROM_EMAIL = "noreply@yourdomain.com"  # 发送邮件的地址（推荐用自己的域名）
-RESEND_API_KEY = "re_xxxxxxxxxxxx"            # 从 Resend 获取
-TO_EMAIL = "接收通知的邮箱@example.com"       # 接收签到通知的邮箱
+# 敏感变量（生产环境建议使用 secrets）
+RESEND_FROM_EMAIL = "noreply@yourdomain.com"
+RESEND_API_KEY = "re_xxxxxxxxxxxx"
+TO_EMAIL = "接收通知的邮箱@example.com"
+JWT_SECRET = "一个很长的随机字符串"
+```
 
-# 安全配置
-JWT_SECRET = "一个很长的随机字符串-用于安全验证"
-AUTH_WORKER_URL = "https://your-worker.your-subdomain.workers.dev"  # Worker 的完整 URL
+**方式2：混合方式（推荐生产环境）**
+
+- 非敏感变量在 `wrangler.toml` 中设置：
+```toml
+[vars]
+USER_NAME = "你的名字"
+THREAD_ID = "123456"
+```
+
+- 敏感变量使用 Wrangler CLI 设置：
+```bash
+wrangler secret put RESEND_FROM_EMAIL
+wrangler secret put RESEND_API_KEY
+wrangler secret put TO_EMAIL
+wrangler secret put JWT_SECRET
 ```
 
 #### 第3步：部署
@@ -222,9 +235,13 @@ bunx wrangler tail
 # 手动触发签到测试
 curl -X POST https://your-worker.workers.dev/trigger-checkin
 
-# 检查 KV 数据
-bunx wrangler kv key list --binding "TOKEN_KV"
-bunx wrangler kv key get --binding "TOKEN_KV" "wechat_token"
+# 检查 KV 数据（新语法）
+bunx wrangler kv key list --namespace-id="TOKEN_KV"
+bunx wrangler kv key get "wechat_token" --namespace-id="TOKEN_KV"
+
+# 或者使用绑定名称（如果已配置）
+bunx wrangler kv key list --binding="TOKEN_KV"
+bunx wrangler kv key get "wechat_token" --binding="TOKEN_KV"
 ```
 
 ---
