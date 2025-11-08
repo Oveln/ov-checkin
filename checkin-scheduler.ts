@@ -42,16 +42,10 @@ export default {
         console.log('[Checkin Scheduler] Using valid cached token');
 
         try {
-          const result = await CheckinService.executeCheckin(tokenInfo.token, env.THREAD_ID, env.USER_NAME, env);
-
-          if (!result.success) {
-            // Checkin failed, determine if it's token expiry or other issues
-            console.log('[Checkin Scheduler] Checkin failed:', result.message);
-            await handleAuthenticationRequired(env);
-          }
+          await CheckinService.executeCheckin(tokenInfo.token, env.THREAD_ID, env.USER_NAME, env);
         } catch (error) {
           console.error('[Checkin Scheduler] Checkin error:', error);
-          await handleAuthenticationRequired(env);
+          await handleErrorNotification(env, error instanceof Error ? error.message : 'Unknown checkin error');
         }
       } else {
         // Token is invalid or missing, need authentication
@@ -64,26 +58,7 @@ export default {
 
       // Send error notification email if configured
       try {
-        await sendEmail(env, {
-          subject: '❌ 签到系统错误',
-          text: `签到系统遇到错误:\n\n${error.message}\n\n时间: ${new Date().toLocaleString('zh-CN')}`,
-          html: `
-            <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; padding: 20px;">
-              <div style="background-color: #f8d7da; padding: 20px; border-radius: 8px; margin-bottom: 20px;">
-                <h2 style="color: #721c24; margin: 0; font-size: 24px;">❌ 签到系统错误</h2>
-              </div>
-              <p style="color: #333; line-height: 1.6;">签到系统遇到错误:</p>
-              <div style="background-color: #f5f5f5; padding: 15px; border-radius: 6px; margin: 20px 0;">
-                <pre style="color: #666; margin: 0;">${error.message}</pre>
-              </div>
-              <p style="color: #333; margin: 20px 0;"><strong>时间:</strong> ${new Date().toLocaleString('zh-CN')}</p>
-              <hr style="border: none; border-top: 1px solid #eee; margin: 30px 0;">
-              <p style="color: #999; font-size: 12px; text-align: center;">
-                此邮件由签到系统自动发送，请勿回复。
-              </p>
-            </div>
-          `
-        });
+        await handleErrorNotification(env, error instanceof Error ? error.message : 'Unknown error');
       } catch (emailError) {
         console.error('[Checkin Scheduler] Failed to send error email:', emailError);
       }
@@ -249,5 +224,33 @@ async function handleAuthenticationRequired(env: Env): Promise<void> {
     console.log('[Checkin Scheduler] Authentication email sent with one-time link');
   } catch (error) {
     console.error('[Checkin Scheduler] Failed to handle authentication required:', error);
+  }
+}
+
+async function handleErrorNotification(env: Env, errorMessage: string): Promise<void> {
+  try {
+    await sendEmail(env, {
+      subject: '❌ 签到系统错误',
+      text: `签到系统遇到错误:\n\n${errorMessage}\n\n时间: ${new Date().toLocaleString('zh-CN')}`,
+      html: `
+        <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; padding: 20px;">
+          <div style="background-color: #f8d7da; padding: 20px; border-radius: 8px; margin-bottom: 20px;">
+            <h2 style="color: #721c24; margin: 0; font-size: 24px;">❌ 签到系统错误</h2>
+          </div>
+          <p style="color: #333; line-height: 1.6;">签到系统遇到错误:</p>
+          <div style="background-color: #f5f5f5; padding: 15px; border-radius: 6px; margin: 20px 0;">
+            <pre style="color: #666; margin: 0;">${errorMessage}</pre>
+          </div>
+          <p style="color: #333; margin: 20px 0;"><strong>时间:</strong> ${new Date().toLocaleString('zh-CN')}</p>
+          <hr style="border: none; border-top: 1px solid #eee; margin: 30px 0;">
+          <p style="color: #999; font-size: 12px; text-align: center;">
+            此邮件由签到系统自动发送，请勿回复。
+          </p>
+        </div>
+      `
+    });
+    console.log('[Checkin Scheduler] Error notification email sent');
+  } catch (emailError) {
+    console.error('[Checkin Scheduler] Failed to send error notification email:', emailError);
   }
 }

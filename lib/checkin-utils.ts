@@ -94,16 +94,18 @@ export class CheckinUtils {
 
       console.log(`[CheckinUtils] Checkin submit response:`, result);
 
-      if (result.Success) {
+      const description = result.Description;
+
+      if (description.includes('打卡成功')) {
         return {
           success: true,
-          message: 'Checkin submitted successfully',
+          message: description,
           data: result.Data
         };
       } else {
         return {
           success: false,
-          message: result.Description || result.Message || 'Failed to submit checkin'
+          message: description
         };
       }
 
