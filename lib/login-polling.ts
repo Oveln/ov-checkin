@@ -5,7 +5,7 @@
 
 import { KVStorage } from './storage';
 import { WeChatUtils } from './wechat-utils';
-import { Env, PollingStatus } from '../types';
+import { Env, PollingStatus, WeChatLoginStatus } from '../types';
 
 export class LoginPolling {
   private storage: KVStorage;
@@ -59,7 +59,9 @@ export class LoginPolling {
         return;
       }
 
-      if (status.status === 'success' || status.status === 'error' || status.status === 'expired') {
+      if (status.status === WeChatLoginStatus.CONFIRMED ||
+          status.status === WeChatLoginStatus.ERROR ||
+          status.status === WeChatLoginStatus.EXPIRED) {
         console.log(`[LoginPolling] Session ${pollingId} already completed with status: ${status.status}`);
         return;
       }
@@ -85,7 +87,7 @@ export class LoginPolling {
       if (!pollResult.success) {
         console.error(`[LoginPolling] Polling error for session ${pollingId}:`, pollResult.message);
         await this.updatePollingStatus(pollingId, {
-          status: 'error',
+          status: WeChatLoginStatus.ERROR,
           message: pollResult.message || 'Polling failed'
         });
         return;
@@ -97,7 +99,7 @@ export class LoginPolling {
     } catch (error) {
       console.error(`[LoginPolling] Error in polling iteration for session ${pollingId}:`, error);
       await this.updatePollingStatus(pollingId, {
-        status: 'error',
+        status: WeChatLoginStatus.ERROR,
         message: 'Polling iteration error'
       });
     }
@@ -113,7 +115,7 @@ export class LoginPolling {
       case 404:
         // Still waiting for scan
         await this.updatePollingStatus(pollingId, {
-          status: 'waiting',
+          status: WeChatLoginStatus.WAITING,
           message: '等待扫描二维码'
         });
         // Continue polling after 1 second
@@ -125,7 +127,7 @@ export class LoginPolling {
       case 408:
         // Scanned, waiting for confirmation
         await this.updatePollingStatus(pollingId, {
-          status: 'scanned',
+          status: WeChatLoginStatus.SCANNED,
           message: '二维码已扫描，等待确认'
         });
         // Continue polling after 1 second
@@ -140,7 +142,7 @@ export class LoginPolling {
           await this.handleLoginConfirmed(pollingId, wxCode);
         } else {
           await this.updatePollingStatus(pollingId, {
-            status: 'error',
+            status: WeChatLoginStatus.ERROR,
             message: '登录确认但未获取到授权码'
           });
         }
@@ -154,7 +156,7 @@ export class LoginPolling {
       default:
         // Unknown status
         await this.updatePollingStatus(pollingId, {
-          status: 'error',
+          status: WeChatLoginStatus.ERROR,
           message: `未知状态码: ${status}`
         });
         break;
@@ -174,7 +176,7 @@ export class LoginPolling {
       if (!tokenResult.success || !tokenResult.token) {
         console.error(`[LoginPolling] Token exchange failed for session ${pollingId}:`, tokenResult.message);
         await this.updatePollingStatus(pollingId, {
-          status: 'error',
+          status: WeChatLoginStatus.ERROR,
           message: tokenResult.message || 'Token exchange failed'
         });
 
@@ -193,7 +195,7 @@ export class LoginPolling {
 
       // Update polling status to success
       await this.updatePollingStatus(pollingId, {
-        status: 'success',
+        status: WeChatLoginStatus.CONFIRMED,
         message: '登录成功，Token已保存'
       });
 
@@ -208,7 +210,7 @@ export class LoginPolling {
     } catch (error) {
       console.error(`[LoginPolling] Error handling login confirmation for session ${pollingId}:`, error);
       await this.updatePollingStatus(pollingId, {
-        status: 'error',
+        status: WeChatLoginStatus.ERROR,
         message: 'Login confirmation processing error'
       });
 
@@ -221,7 +223,7 @@ export class LoginPolling {
    */
   private async handleSessionExpired(pollingId: string): Promise<void> {
     await this.updatePollingStatus(pollingId, {
-      status: 'expired',
+      status: WeChatLoginStatus.EXPIRED,
       message: '二维码已过期'
     });
 

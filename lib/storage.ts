@@ -3,7 +3,7 @@
  * Handles KV storage
  */
 
-import { TokenInfo, PollingStatus } from '../types';
+import { TokenInfo, PollingStatus, WeChatLoginStatus } from '../types';
 
 // KV Storage wrapper
 export class KVStorage {
@@ -46,7 +46,7 @@ export class KVStorage {
   async createPollingSession(pollingId: string, uuid: string): Promise<void> {
     try {
       const status: PollingStatus = {
-        status: 'waiting',
+        status: WeChatLoginStatus.WAITING,
         uuid,
         timestamp: Date.now()
       };
@@ -85,7 +85,7 @@ export class KVStorage {
     try {
       const currentStatus = await this.getPollingStatus(pollingId);
       const updatedStatus: PollingStatus = {
-        status: currentStatus?.status || 'waiting',
+        status: currentStatus?.status || WeChatLoginStatus.WAITING,
         uuid: currentStatus?.uuid,
         message: currentStatus?.message,
         wxCode: currentStatus?.wxCode,
