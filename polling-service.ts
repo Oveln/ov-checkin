@@ -144,42 +144,25 @@ export async function processPollingSession(pollingId: string, env: Env): Promis
             `
           });
 
-          // Perform immediate checkin
+          // Trigger checkin directly after successful login
           try {
-            console.log('[Polling Service] Performing immediate checkin after login');
-            const checkinResult = await performCheckin(tokenResult.token, env.THREAD_ID, env.USER_NAME);
+            console.log('[Polling Service] Triggering checkin after login');
 
-            if (checkinResult.success) {
-              // Send checkin success email
-              await sendEmail(env, {
-                subject: '✅ 签到成功',
-                text: `今日签到已成功完成！\n\n签到时间: ${new Date().toLocaleString('zh-CN')}\n状态: ${checkinResult.message}`,
-                html: `
-                  <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; padding: 20px;">
-                    <div style="background-color: #e8f5e8; padding: 20px; border-radius: 8px; margin-bottom: 20px;">
-                      <h2 style="color: #2e7d32; margin: 0; font-size: 24px;">✅ 签到成功</h2>
-                    </div>
-                    <p style="color: #333; line-height: 1.6;">今日签到已成功完成！</p>
-                    <div style="background-color: #f5f5f5; padding: 15px; border-radius: 6px; margin: 20px 0;">
-                      <h3 style="color: #333; margin-top: 0; font-size: 16px;">签到详情：</h3>
-                      <ul style="color: #666; line-height: 1.6;">
-                        <li><strong>签到时间:</strong> ${new Date().toLocaleString('zh-CN')}</li>
-                        <li><strong>状态:</strong> ${checkinResult.message}</li>
-                      </ul>
-                    </div>
-                    <hr style="border: none; border-top: 1px solid #eee; margin: 30px 0;">
-                    <p style="color: #999; font-size: 12px; text-align: center;">
-                      此邮件由签到系统自动发送，请勿回复。
-                    </p>
-                  </div>
-                `
-              });
-              console.log('[Polling Service] Immediate checkin successful');
+            // Call the trigger-checkin endpoint internally using the Worker's own URL
+            const response = await fetch(`${env.AUTH_WORKER_URL}/trigger-checkin`, {
+              method: 'POST',
+              headers: {
+                'Content-Type': 'application/json',
+              },
+            });
+
+            if (response.ok) {
+              console.log('[Polling Service] Checkin triggered successfully');
             } else {
-              console.log('[Polling Service] Immediate checkin failed:', checkinResult.message);
+              console.error('[Polling Service] Failed to trigger checkin:', response.status, response.statusText);
             }
           } catch (checkinError) {
-            console.error('[Polling Service] Error performing immediate checkin:', checkinError);
+            console.error('[Polling Service] Error triggering checkin:', checkinError);
           }
 
           pollingStatus.status = WeChatLoginStatus.CONFIRMED; // Use confirmed as success status
