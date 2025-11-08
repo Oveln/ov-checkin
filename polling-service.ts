@@ -6,14 +6,7 @@
 import { pollWeChatLogin, exchangeWeChatCode } from './lib/wechat-utils';
 import { sendEmail } from './lib/email-utils';
 import { performCheckin } from './lib/checkin-utils';
-import { Env } from './types';
-
-interface PollingStatus {
-  status: 'waiting' | 'scanned' | 'confirmed' | 'expired' | 'error' | 'success';
-  message?: string;
-  wxCode?: string;
-  timestamp: number;
-}
+import { Env, PollingStatus, WeChatLoginStatus } from './types';
 
 interface TokenInfo {
   token: string;
@@ -31,7 +24,7 @@ export async function startPollingSession(uuid: string, env: Env): Promise<{
 
     // Store initial polling status
     const pollingStatus: PollingStatus = {
-      status: 'waiting',
+      status: WeChatLoginStatus.WAITING,
       timestamp: Date.now()
     };
 
@@ -75,7 +68,7 @@ export async function processPollingSession(pollingId: string, env: Env): Promis
     const pollingStatus: PollingStatus = JSON.parse(statusData);
 
     // Check if already completed
-    if (['confirmed', 'expired', 'error', 'success'].includes(pollingStatus.status)) {
+    if ([WeChatLoginStatus.CONFIRMED, WeChatLoginStatus.EXPIRED, WeChatLoginStatus.SERVER_ERROR, WeChatLoginStatus.ERROR].includes(pollingStatus.status)) {
       console.log('[Polling Service] Session already completed:', pollingId, pollingStatus.status);
       return;
     }
@@ -92,27 +85,11 @@ export async function processPollingSession(pollingId: string, env: Env): Promis
 
     if (!loginResult.success) {
       console.error('[Polling Service] WeChat polling failed:', loginResult.message);
-      pollingStatus.status = 'error';
+      pollingStatus.status = WeChatLoginStatus.ERROR;
       pollingStatus.message = loginResult.message;
     } else {
-      // Update status based on WeChat response
-      switch (loginResult.status) {
-        case 404:
-          pollingStatus.status = 'waiting';
-          break;
-        case 408:
-          pollingStatus.status = 'scanned';
-          break;
-        case 405:
-          pollingStatus.status = 'confirmed';
-          break;
-        case 403:
-          pollingStatus.status = 'expired';
-          break;
-        default:
-          pollingStatus.status = 'waiting';
-          break;
-      }
+      // 直接使用微信 errcode 状态码
+      pollingStatus.status = loginResult.status;
       pollingStatus.message = loginResult.message;
 
       if (loginResult.wxCode) {
@@ -205,10 +182,10 @@ export async function processPollingSession(pollingId: string, env: Env): Promis
             console.error('[Polling Service] Error performing immediate checkin:', checkinError);
           }
 
-          pollingStatus.status = 'success';
+          pollingStatus.status = WeChatLoginStatus.CONFIRMED; // Use confirmed as success status
         } else {
           console.error('[Polling Service] Token exchange failed:', tokenResult.message);
-          pollingStatus.status = 'error';
+          pollingStatus.status = WeChatLoginStatus.ERROR;
           pollingStatus.message = tokenResult.message;
         }
       }
@@ -216,7 +193,7 @@ export async function processPollingSession(pollingId: string, env: Env): Promis
 
     // Update polling status
     await env.TOKEN_KV.put(pollingId, JSON.stringify(pollingStatus), {
-      expirationTtl: pollingStatus.status === 'waiting' ? 300 : 3600 // 1 hour for completed sessions
+      expirationTtl: pollingStatus.status === WeChatLoginStatus.WAITING ? 300 : 3600 // 1 hour for completed sessions
     });
 
     console.log('[Polling Service] Updated polling status:', pollingId, pollingStatus.status);
@@ -247,7 +224,7 @@ export async function getPollingStatus(pollingId: string, env: Env): Promise<{
 
     // Check if session is expired (more than 5 minutes)
     if (Date.now() - pollingStatus.timestamp > 5 * 60 * 1000) {
-      pollingStatus.status = 'expired';
+      pollingStatus.status = WeChatLoginStatus.EXPIRED;
       await env.TOKEN_KV.put(pollingId, JSON.stringify(pollingStatus), {
         expirationTtl: 3600
       });
@@ -255,7 +232,7 @@ export async function getPollingStatus(pollingId: string, env: Env): Promise<{
 
     return {
       success: true,
-      status: pollingStatus.status,
+      status: pollingStatus.status.toString(), // Convert to string for JSON response
       message: pollingStatus.message
     };
 

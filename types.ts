@@ -55,14 +55,14 @@ export interface QRCodeResponse {
 // WeChat login polling response
 export interface PollingResponse {
   success: boolean;
-  status: number;
+  status: WeChatLoginStatus;
   wxCode?: string;
   message?: string;
 }
 
 // Polling session status
 export interface PollingStatus {
-  status: 'waiting' | 'scanned' | 'confirmed' | 'expired' | 'error' | 'success';
+  status: WeChatLoginStatus;
   message?: string;
   wxCode?: string;
   uuid?: string;
@@ -138,7 +138,18 @@ export interface Location {
   address?: string;
 }
 
-// WeChat login flow states
+// WeChat login errcode states
+export enum WeChatLoginStatus {
+  WAITING = 408,      // 初始状态，无操作
+  SCANNED = 404,      // 已扫描，等待确认
+  CONFIRMED = 405,    // 扫码成功，已确认
+  CANCELLED = 403,    // 用户取消扫描
+  EXPIRED = 402,      // 二维码已失效
+  SERVER_ERROR = 500, // 服务器错误
+  ERROR = 0           // 通用错误状态
+}
+
+// WeChat login flow states (deprecated, use WeChatLoginStatus instead)
 export type WeChatLoginState =
   | 'waiting_for_scan'
   | 'scanned_waiting_confirm'

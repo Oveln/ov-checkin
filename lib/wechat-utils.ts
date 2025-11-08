@@ -3,7 +3,7 @@
  * Handles WeChat OAuth, QR code generation, and token exchange
  */
 
-import { QRCodeResponse, PollingResponse, TokenExchangeResponse, WeChatApiResponse, WeChatTokenData } from '../types';
+import { QRCodeResponse, PollingResponse, TokenExchangeResponse, WeChatApiResponse, WeChatTokenData, WeChatLoginStatus } from '../types';
 
 /**
  * Convert ArrayBuffer to Base64 string (Cloudflare Workers compatible)
@@ -220,52 +220,52 @@ export class WeChatUtils {
 
       // Handle different status codes based on official implementation
       switch (errcode) {
-        case 405:
+        case WeChatLoginStatus.CONFIRMED: // 405
           if (!wxCode) {
             return {
               success: false,
-              status: 405,
+              status: WeChatLoginStatus.CONFIRMED,
               message: '扫码成功但未获取到code'
             };
           }
           console.log(`[WeChatUtils] 扫码成功，wx_code: ${wxCode.substring(0, 8)}...`);
           return {
             success: true,
-            status: 405,
+            status: WeChatLoginStatus.CONFIRMED,
             wxCode,
             message: '扫码成功'
           };
 
-        case 404:
+        case WeChatLoginStatus.SCANNED: // 404
           // 已扫描，等待确认
           return {
             success: true,
-            status: 404,
+            status: WeChatLoginStatus.SCANNED,
             message: '已扫描，等待确认'
           };
 
-        case 403:
+        case WeChatLoginStatus.CANCELLED: // 403
           // 用户取消扫描
           return {
             success: true,
-            status: 403,
+            status: WeChatLoginStatus.CANCELLED,
             message: '用户取消扫描，请重新扫描'
           };
 
-        case 408:
+        case WeChatLoginStatus.WAITING: // 408
           // 初始状态，无操作
           return {
             success: true,
-            status: 408,
+            status: WeChatLoginStatus.WAITING,
             message: '等待扫描二维码'
           };
 
-        case 402:
-        case 500:
+        case WeChatLoginStatus.EXPIRED: // 402
+        case WeChatLoginStatus.SERVER_ERROR: // 500
           // 需要重新开始
           return {
             success: false,
-            status: errcode,
+            status: errcode as WeChatLoginStatus,
             message: '二维码已失效，请重新获取'
           };
 
@@ -274,7 +274,7 @@ export class WeChatUtils {
           const status = errcode || response.status;
           return {
             success: false,
-            status,
+            status: status as WeChatLoginStatus,
             message: `未知状态码: ${status}`
           };
       }
