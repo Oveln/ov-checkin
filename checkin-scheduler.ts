@@ -4,7 +4,7 @@
  * Functionality: Scheduled checkin, auth handling, login polling
  */
 
-import { performCheckin } from './lib/checkin-utils';
+import { CheckinService } from './lib/checkin-service';
 import { sendEmail } from './lib/email-utils';
 import { generateOneTimeLink } from './lib/auth-utils';
 import { handleAuthRequest, generateQRCodePage, generateErrorPage, generateSuccessPage } from './auth-service';
@@ -18,10 +18,7 @@ interface TokenInfo {
   expire: number;
 }
 
-interface CheckinResult {
-  success: boolean;
-  message: string;
-}
+// CheckinResult interface is now defined in checkin-service
 
 interface EmailContent {
   subject: string;
@@ -45,27 +42,12 @@ export default {
         console.log('[Checkin Scheduler] Using valid cached token');
 
         try {
-          const checkinResult: CheckinResult = await performCheckin(tokenInfo.token, env.THREAD_ID, env.USER_NAME);
+          const result = await CheckinService.executeCheckin(tokenInfo.token, env.THREAD_ID, env.USER_NAME, env);
 
-          if (checkinResult.success) {
-            // Send success email
-            await sendEmail(env, {
-              subject: '✅ 签到成功',
-              text: `今日签到已成功完成！\n\n签到时间: ${new Date().toLocaleString('zh-CN')}\n状态: ${checkinResult.message}`,
-              html: `
-                <h2>✅ 签到成功</h2>
-                <p>今日签到已成功完成！</p>
-                <ul>
-                  <li><strong>签到时间:</strong> ${new Date().toLocaleString('zh-CN')}</li>
-                  <li><strong>状态:</strong> ${checkinResult.message}</li>
-                </ul>
-              `
-            });
-            console.log('[Checkin Scheduler] Checkin successful, email sent');
-          } else {
+          if (!result.success) {
             // Checkin failed, determine if it's token expiry or other issues
-            console.log('[Checkin Scheduler] Checkin failed:', checkinResult.message);
-            await handleCheckinFailure(checkinResult, env);
+            console.log('[Checkin Scheduler] Checkin failed:', result.message);
+            await handleAuthenticationRequired(env);
           }
         } catch (error) {
           console.error('[Checkin Scheduler] Checkin error:', error);
@@ -86,10 +68,20 @@ export default {
           subject: '❌ 签到系统错误',
           text: `签到系统遇到错误:\n\n${error.message}\n\n时间: ${new Date().toLocaleString('zh-CN')}`,
           html: `
-            <h2>❌ 签到系统错误</h2>
-            <p>签到系统遇到错误:</p>
-            <pre>${error.message}</pre>
-            <p><strong>时间:</strong> ${new Date().toLocaleString('zh-CN')}</p>
+            <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; padding: 20px;">
+              <div style="background-color: #f8d7da; padding: 20px; border-radius: 8px; margin-bottom: 20px;">
+                <h2 style="color: #721c24; margin: 0; font-size: 24px;">❌ 签到系统错误</h2>
+              </div>
+              <p style="color: #333; line-height: 1.6;">签到系统遇到错误:</p>
+              <div style="background-color: #f5f5f5; padding: 15px; border-radius: 6px; margin: 20px 0;">
+                <pre style="color: #666; margin: 0;">${error.message}</pre>
+              </div>
+              <p style="color: #333; margin: 20px 0;"><strong>时间:</strong> ${new Date().toLocaleString('zh-CN')}</p>
+              <hr style="border: none; border-top: 1px solid #eee; margin: 30px 0;">
+              <p style="color: #999; font-size: 12px; text-align: center;">
+                此邮件由签到系统自动发送，请勿回复。
+              </p>
+            </div>
           `
         });
       } catch (emailError) {
@@ -224,39 +216,9 @@ export default {
   }
 };
 
-async function handleCheckinFailure(checkinResult: CheckinResult, env: Env): Promise<void> {
-  try {
-    // Send reminder email
-    await sendEmail(env, {
-      subject: '⚠️ 签到提醒',
-      text: `今日签到遇到问题:\n\n${checkinResult.message}\n\n系统将在下次定时任务时自动重试。`,
-      html: `
-        <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; padding: 20px;">
-          <div style="background-color: #fff3cd; padding: 20px; border-radius: 8px; margin-bottom: 20px;">
-            <h2 style="color: #856404; margin: 0; font-size: 24px;">⚠️ 签到提醒</h2>
-          </div>
-          <p style="color: #333; line-height: 1.6;">今日签到遇到问题，但无需重新登录。</p>
-          <div style="background-color: #f5f5f5; padding: 15px; border-radius: 6px; margin: 20px 0;">
-            <h3 style="color: #333; margin-top: 0; font-size: 16px;">详情：</h3>
-            <p style="color: #666; line-height: 1.6;">${checkinResult.message}</p>
-          </div>
-          <div style="background-color: #e7f3ff; padding: 15px; border-radius: 6px; margin: 20px 0;">
-            <p style="color: #0066cc; margin: 0; font-size: 14px;">
-              <strong>💡 提示:</strong> 系统将在下次定时任务时自动重试，您无需进行任何操作。
-            </p>
-          </div>
-          <hr style="border: none; border-top: 1px solid #eee; margin: 30px 0;">
-          <p style="color: #999; font-size: 12px; text-align: center;">
-            此邮件由签到系统自动发送，请勿回复。
-          </p>
-        </div>
-      `
-    });
-
-    console.log('[Checkin Scheduler] Checkin failure notification sent:', checkinResult.message);
-  } catch (error) {
-    console.error('[Checkin Scheduler] Failed to handle checkin failure:', error);
-  }
+// This function is now handled by CheckinService
+async function handleCheckinFailure(checkinResult: { message: string }): Promise<void> {
+  console.log('[Checkin Scheduler] Checkin failure notification handled by CheckinService:', checkinResult.message);
 }
 
 async function handleAuthenticationRequired(env: Env): Promise<void> {

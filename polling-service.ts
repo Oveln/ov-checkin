@@ -5,7 +5,7 @@
 
 import { pollWeChatLogin, exchangeWeChatCode } from './lib/wechat-utils';
 import { sendEmail } from './lib/email-utils';
-import { performCheckin } from './lib/checkin-utils';
+import { CheckinService } from './lib/checkin-service';
 import { Env, PollingStatus, WeChatLoginStatus } from './types';
 
 interface TokenInfo {
@@ -144,25 +144,13 @@ export async function processPollingSession(pollingId: string, env: Env): Promis
             `
           });
 
-          // Trigger checkin directly after successful login
+          // Trigger immediate checkin using shared CheckinService
           try {
-            console.log('[Polling Service] Triggering checkin after login');
-
-            // Call the trigger-checkin endpoint internally using the Worker's own URL
-            const response = await fetch(`${env.AUTH_WORKER_URL}/trigger-checkin`, {
-              method: 'POST',
-              headers: {
-                'Content-Type': 'application/json',
-              },
-            });
-
-            if (response.ok) {
-              console.log('[Polling Service] Checkin triggered successfully');
-            } else {
-              console.error('[Polling Service] Failed to trigger checkin:', response.status, response.statusText);
-            }
+            console.log('[Polling Service] Performing immediate checkin after login');
+            const result = await CheckinService.executeCheckin(tokenResult.token, env.THREAD_ID, env.USER_NAME, env);
+            console.log('[Polling Service] Immediate checkin completed:', result.success ? 'success' : 'failed');
           } catch (checkinError) {
-            console.error('[Polling Service] Error triggering checkin:', checkinError);
+            console.error('[Polling Service] Error performing immediate checkin:', checkinError);
           }
 
           pollingStatus.status = WeChatLoginStatus.CONFIRMED; // Use confirmed as success status
