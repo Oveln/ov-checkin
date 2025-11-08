@@ -114,7 +114,7 @@ export class AuthUtils {
           count: 1,
           firstAttempt: Date.now()
         }), {
-          expirationTtl: Math.ceil(windowMs / 1000)
+          expirationTtl: Math.max(60, Math.ceil(windowMs / 1000))
         });
         return true;
       }
@@ -128,7 +128,7 @@ export class AuthUtils {
           count: 1,
           firstAttempt: now
         }), {
-          expirationTtl: Math.ceil(windowMs / 1000)
+          expirationTtl: Math.max(60, Math.ceil(windowMs / 1000))
         });
         return true;
       }
@@ -139,11 +139,12 @@ export class AuthUtils {
       }
 
       // Increment counter
+      const remainingTtl = Math.ceil((windowMs - (now - data.firstAttempt)) / 1000);
       await this.env.TOKEN_KV.put(rateLimitKey, JSON.stringify({
         count: data.count + 1,
         firstAttempt: data.firstAttempt
       }), {
-        expirationTtl: Math.ceil((windowMs - (now - data.firstAttempt)) / 1000)
+        expirationTtl: Math.max(60, remainingTtl) // Ensure minimum 60 seconds TTL
       });
 
       return true;
